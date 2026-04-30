@@ -12,6 +12,7 @@ import calendar
 import math
 from datetime import date, datetime, timedelta
 from io import StringIO
+from jinja2 import TemplateNotFound
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get("SECRET_KEY", "boardacademy2026secret")
@@ -626,7 +627,43 @@ def logout():
 
 @app.route("/abril")
 def abril():
-    return render_template("abril.html", nome="Board Academy")
+    try:
+        return render_template("abril.html", nome="Board Academy")
+    except TemplateNotFound:
+        return """
+        <!doctype html>
+        <html lang="pt-br">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>Board Academy — Forecast</title>
+            <style>
+                body { font-family: Arial, sans-serif; background:#111; color:#eee; margin:0; padding:24px; }
+                pre { background:#1b1b1b; padding:16px; border-radius:8px; overflow:auto; }
+                .erro { color:#ff7777; white-space:pre-wrap; }
+            </style>
+        </head>
+        <body>
+            <h1>Board Academy — Forecast</h1>
+            <p>Template <b>abril.html</b> não encontrado. Mostrando retorno bruto da API:</p>
+            <pre id="out">Carregando...</pre>
+            <script>
+                fetch('/api/abril')
+                    .then(async r => {
+                        const txt = await r.text();
+                        try { return JSON.stringify(JSON.parse(txt), null, 2); }
+                        catch(e) { return txt; }
+                    })
+                    .then(t => document.getElementById('out').textContent = t)
+                    .catch(e => {
+                        const el = document.getElementById('out');
+                        el.className = 'erro';
+                        el.textContent = String(e);
+                    });
+            </script>
+        </body>
+        </html>
+        """
 
 @app.route("/api/abril")
 def api_abril():
@@ -649,7 +686,10 @@ def api_abril():
 # ── ROTA TV — Painel de Vendas ────────────────────────────────
 @app.route("/tv")
 def tv():
-    return render_template("tv.html")
+    try:
+        return render_template("tv.html")
+    except TemplateNotFound:
+        return redirect("/abril")
 
 @app.route("/api/tv/deals")
 def tv_deals():
