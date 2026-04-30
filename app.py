@@ -605,7 +605,7 @@ def calcular_abril(mes=None, ano=None, head_filter=None):
 # ── ROTAS FORECAST ────────────────────────────────────────────
 @app.route("/")
 def index():
-    return redirect("/login" if "nome" not in session else "/abril")
+    return redirect("/abril")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -626,60 +626,30 @@ def logout():
 
 @app.route("/abril")
 def abril():
-    if "nome" not in session:
-        return redirect("/login")
-    return render_template("abril.html", nome=session["nome"])
+    return render_template("abril.html", nome="Board Academy")
 
 @app.route("/api/abril")
 def api_abril():
-    if "nome" not in session:
-        return jsonify({"erro": "Não autenticado"}), 401
     try:
-        mes  = request.args.get("mes", type=int)
-        ano  = request.args.get("ano", type=int)
-        nome_sess = session.get("nome", "")
-        colab_df  = buscar_colaboradores()
-        head_col  = next((c for c in colab_df.columns if "head" in norm(c)), None)
-        nome_col  = next((c for c in colab_df.columns if norm(c) == "nome"), "Nome")
-        superusers = {norm(u.strip()) for u in SUPERUSERS_RAW.split(",")}
-        nn_sess = norm(nome_sess)
-        if nn_sess in superusers:
-            head_filter = None
-        else:
-            is_head = False
-            if head_col:
-                for _, row in colab_df.iterrows():
-                    if norm(str(row.get(head_col, ""))) == nn_sess:
-                        is_head = True
-                        break
-            if is_head:
-                head_filter = nome_sess
-            else:
-                lider_col_l = next((c for c in colab_df.columns if "lider" in norm(c) and "team" in norm(c)), None)
-                is_lider = False
-                lider_sub = None
-                if lider_col_l:
-                    for _, row in colab_df.iterrows():
-                        if norm(str(row.get(lider_col_l, ""))) == nn_sess:
-                            sub_col = next((c for c in colab_df.columns if norm(c) == "subarea"), None)
-                            sub = str(row.get(sub_col if sub_col else "Subárea", "")).strip()
-                            if sub:
-                                lider_sub = sub
-                                is_lider = True
-                                break
-                if is_lider and lider_sub:
-                    head_filter = f"__squad__:{lider_sub}"
-                else:
-                    head_filter = "__none__"
-        return jsonify(limpar_nans(calcular_abril(mes=mes, ano=ano, head_filter=head_filter)))
+        mes = request.args.get("mes", type=int)
+        ano = request.args.get("ano", type=int)
+
+        # Sem login: mostra tudo para quem acessar o link.
+        head_filter = None
+
+        return jsonify(limpar_nans(calcular_abril(
+            mes=mes,
+            ano=ano,
+            head_filter=head_filter
+        )))
     except Exception as e:
         import traceback
         return jsonify({"erro": str(e), "trace": traceback.format_exc()}), 500
 
 # ── ROTA TV — Painel de Vendas ────────────────────────────────
-@app.route("/")
-def index():
-    return redirect("/tv")
+@app.route("/tv")
+def tv():
+    return render_template("tv.html")
 
 @app.route("/api/tv/deals")
 def tv_deals():
@@ -730,8 +700,6 @@ def tv_config():
 # ── DEBUG ─────────────────────────────────────────────────────
 @app.route("/api/debug/metas")
 def debug_metas():
-    if "nome" not in session:
-        return jsonify({"erro": "Não autenticado"}), 401
     hoje = date.today()
     df = ler_sheet(URL_METAS)
     return jsonify({
@@ -742,8 +710,6 @@ def debug_metas():
 
 @app.route("/api/debug/colab")
 def debug_colab():
-    if "nome" not in session:
-        return jsonify({"erro": "Não autenticado"}), 401
     df = ler_sheet(URL_COLAB)
     return jsonify({
         "colunas": list(df.columns),
