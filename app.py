@@ -677,9 +677,9 @@ def api_abril():
         return jsonify({"erro": str(e), "trace": traceback.format_exc()}), 500
 
 # ── ROTA TV — Painel de Vendas ────────────────────────────────
-@app.route("/tv")
-def tv():
-    return render_template("tv.html")
+@app.route("/")
+def index():
+    return redirect("/tv")
 
 @app.route("/api/tv/deals")
 def tv_deals():
